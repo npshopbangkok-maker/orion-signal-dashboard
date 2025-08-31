@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Signal, WebSocketMessage } from '../types/signal';
+import { Signal, PriceData, WebSocketMessage } from '../types/signal';
 
 const DEMO_SYMBOLS = ['MNQ', 'NQ', 'MES'];
 const DEMO_KILLZONES = ['asia', 'london', 'ny_am', 'lunch', 'pm'];
@@ -63,12 +63,30 @@ const generateDemoSignal = (): Signal => {
 
 export const useSignalWebSocket = (wsUrl?: string) => {
   const [signals, setSignals] = useState<Signal[]>([]);
+  const [prices, setPrices] = useState<Record<string, PriceData>>({});
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
   const ws = useRef<WebSocket | null>(null);
   const demoInterval = useRef<number | null>(null);
+  const priceInterval = useRef<number | null>(null);
   const expireTimeouts = useRef<Map<string, number>>(new Map());
 
   // Demo mode functions
+  const generateDemoPrice = (symbol: string): PriceData => {
+    const basePrices = { MNQ: 19000, NQ: 17000, MES: 4500, ES: 4600 };
+    const basePrice = basePrices[symbol as keyof typeof basePrices] || 19000;
+    const change = (Math.random() - 0.5) * 50;
+    const price = basePrice + change;
+    
+    return {
+      symbol,
+      price: Math.round(price * 100) / 100,
+      timestamp: new Date().toISOString(),
+      change: Math.round(change * 100) / 100,
+      change_percent: Math.round((change / basePrice) * 10000) / 100,
+      volume: Math.floor(Math.random() * 10000) + 1000
+    };
+  };
+
   const startDemoMode = () => {
     console.log('Starting demo mode...');
     setConnectionStatus('connected');
@@ -77,13 +95,21 @@ export const useSignalWebSocket = (wsUrl?: string) => {
     const initialSignals = Array.from({ length: 3 }, generateDemoSignal);
     setSignals(initialSignals);
     
+    // Generate initial prices
+    const symbols = ['MNQ', 'NQ', 'MES', 'ES'];
+    const initialPrices: Record<string, PriceData> = {};
+    symbols.forEach(symbol => {
+      initialPrices[symbol] = generateDemoPrice(symbol);
+    });
+    setPrices(initialPrices);
+    
     // Schedule demo signal generation
-    demoInterval.current = setInterval(() => {
+    demoInterval.current = window.setInterval(() => {
       const newSignal = generateDemoSignal();
       setSignals(prev => [newSignal, ...prev].slice(0, 20)); // Keep max 20 signals
       
       // Schedule status update for this signal
-      const updateTimeout = setTimeout(() => {
+      const updateTimeout = window.setTimeout(() => {
         setSignals(prev => prev.map(s => {
           if (s.id === newSignal.id && s.status === 'pending') {
             const newStatus = Math.random() > 0.3 ? 'confirmed' : 'invalidated';
@@ -95,12 +121,27 @@ export const useSignalWebSocket = (wsUrl?: string) => {
       
       expireTimeouts.current.set(newSignal.id, updateTimeout);
     }, Math.random() * 10000 + 5000); // 5-15 seconds between new signals
+    
+    // Schedule price updates
+    priceInterval.current = window.setInterval(() => {
+      symbols.forEach(symbol => {
+        const newPrice = generateDemoPrice(symbol);
+        setPrices(prev => ({
+          ...prev,
+          [symbol]: newPrice
+        }));
+      });
+    }, 2000 + Math.random() * 3000); // 2-5 seconds between price updates
   };
 
   const stopDemoMode = () => {
     if (demoInterval.current) {
       clearInterval(demoInterval.current);
       demoInterval.current = null;
+    }
+    if (priceInterval.current) {
+      clearInterval(priceInterval.current);
+      priceInterval.current = null;
     }
     // Clear all expire timeouts
     expireTimeouts.current.forEach(timeout => clearTimeout(timeout));
@@ -126,8 +167,9 @@ export const useSignalWebSocket = (wsUrl?: string) => {
       ws.current.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
-          if (message.type === 'signal' && message.payload) {
-            const signal = message.payload;
+          
+          if (message.type === 'signal' && 'id' in message.payload) {
+            const signal = message.payload as Signal;
             setSignals(prev => {
               // Check if signal already exists (update) or is new
               const existingIndex = prev.findIndex(s => s.id === signal.id);
@@ -144,7 +186,7 @@ export const useSignalWebSocket = (wsUrl?: string) => {
 
             // Set expiration timeout for pending signals
             if (signal.status === 'pending') {
-              const expireTimeout = setTimeout(() => {
+              const expireTimeout = window.setTimeout(() => {
                 setSignals(prev => prev.map(s => 
                   s.id === signal.id && s.status === 'pending' 
                     ? { ...s, status: 'invalidated' } 
@@ -161,6 +203,12 @@ export const useSignalWebSocket = (wsUrl?: string) => {
                 expireTimeouts.current.delete(signal.id);
               }
             }
+          } else if (message.type === 'price_update' && 'symbol' in message.payload) {
+            const priceData = message.payload as PriceData;
+            setPrices(prev => ({
+              ...prev,
+              [priceData.symbol]: priceData
+            }));
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
@@ -211,6 +259,7 @@ export const useSignalWebSocket = (wsUrl?: string) => {
 
   return {
     signals,
+    prices,
     connectionStatus,
     reconnect: connectWebSocket,
     disconnect

@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { Signal } from '../types/signal';
 import { rrPerTp } from '../utils/rr';
 import { fmtPrice, fmtTime } from '../utils/format';
+import { topstepxAutoTrader } from '../services/topstepxAutoTrading';
+import { trailingStopManager } from '../services/trailingStop';
 
 interface SignalCardProps {
   signal: Signal;
@@ -73,6 +75,22 @@ const SignalCard: React.FC<SignalCardProps> = ({ signal, onCopy }) => {
     return message;
   };
 
+  const handleAutoTrade = async () => {
+    const success = await topstepxAutoTrader.executeSignal(signal);
+    if (success) {
+      onCopy(signal); // Show success notification
+    }
+  };
+
+  const handleStartTrailing = () => {
+    // Start trailing stop for this signal
+    const currentPrice = signal.entry_price || signal.price;
+    if (currentPrice) {
+      trailingStopManager.startTrailing(signal, currentPrice);
+      onCopy(signal); // Show notification
+    }
+  };
+
   const handleCopy = () => {
     const message = generateTradeMessage();
     navigator.clipboard.writeText(message);
@@ -91,14 +109,11 @@ const SignalCard: React.FC<SignalCardProps> = ({ signal, onCopy }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      whileHover={{ scale: 1.02 }}
-      className={`bg-card-bg rounded-2xl p-4 shadow-lg border border-gray-700/30 hover:border-gray-600/50 transition-all duration-200 ${
-        isInvalidated ? 'opacity-60' : ''
-      }`}
+      transition={{ duration: 0.3 }}
+      className="signal-card p-4"
     >
       {/* Header with status and direction */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2">
         <div className={`px-2 py-1 rounded-lg text-xs font-medium border ${getStatusColor(signal.status)}`}>
           {signal.status.toUpperCase()}
         </div>
@@ -109,17 +124,17 @@ const SignalCard: React.FC<SignalCardProps> = ({ signal, onCopy }) => {
 
       {/* Symbol and Entry Price */}
       <div className="mb-3">
-        <h3 className="text-xl font-bold text-white mb-1">{signal.symbol}</h3>
+        <h3 className="text-lg font-bold text-white mb-1">{signal.symbol}</h3>
         {entryPrice && (
-          <p className={`text-2xl font-mono text-blue-400 ${isInvalidated ? 'line-through' : ''}`}>
+          <p className={`text-xl font-mono text-blue-400 ${isInvalidated ? 'line-through' : ''}`}>
             ${formatPrice(entryPrice)}
           </p>
         )}
       </div>
 
       {/* Reason */}
-      <div className="mb-3">
-        <p className="text-gray-300 text-sm">{signal.reason}</p>
+      <div className="mb-2">
+        <p className="text-gray-300 text-xs">{signal.reason}</p>
       </div>
 
       {/* Basic Metrics */}
@@ -144,11 +159,11 @@ const SignalCard: React.FC<SignalCardProps> = ({ signal, onCopy }) => {
 
       {/* Trading Levels Section */}
       {(entryPrice || signal.stop_loss || signal.take_profits?.length) && (
-        <div className="mb-4 p-3 bg-dark-bg/50 rounded-xl">
-          <h4 className="text-sm font-semibold text-gray-300 mb-2">Levels</h4>
+        <div className="mb-3 p-2 bg-dark-bg/50 rounded-lg">
+          <h4 className="text-xs font-semibold text-gray-300 mb-2">Levels</h4>
           
           {/* Entry and SL */}
-          <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
+          <div className="grid grid-cols-2 gap-2 mb-2 text-xs">
             {entryPrice && (
               <div>
                 <span className="text-gray-400">Entry</span>
@@ -181,7 +196,7 @@ const SignalCard: React.FC<SignalCardProps> = ({ signal, onCopy }) => {
                   return (
                     <div 
                       key={index}
-                      className={`flex items-center justify-between p-2 bg-green-500/10 border border-green-500/20 rounded-lg ${
+                      className={`flex items-center justify-between p-1.5 bg-green-500/10 border border-green-500/20 rounded ${
                         isInvalidated ? 'opacity-50' : ''
                       }`}
                     >
@@ -189,12 +204,12 @@ const SignalCard: React.FC<SignalCardProps> = ({ signal, onCopy }) => {
                         <span className="text-green-400 text-xs font-medium">
                           {label}
                         </span>
-                        <span className={`text-white font-mono text-sm ${isInvalidated ? 'line-through' : ''}`}>
+                        <span className={`text-white font-mono text-xs ${isInvalidated ? 'line-through' : ''}`}>
                           {formatPrice(tp)}
                         </span>
                       </div>
                       {rr !== null && (
-                        <span className="text-green-300 text-xs bg-green-500/20 px-2 py-1 rounded">
+                        <span className="text-green-300 text-xs bg-green-500/20 px-1.5 py-0.5 rounded">
                           {rr}R
                         </span>
                       )}
@@ -208,18 +223,35 @@ const SignalCard: React.FC<SignalCardProps> = ({ signal, onCopy }) => {
       )}
 
       {/* Action Buttons */}
-      <div className="space-y-2">
+            {/* Action Buttons */}
+      <div className="space-y-1.5">
+        {signal.status === 'confirmed' && topstepxAutoTrader.isEnabled() && (
+          <button
+            onClick={handleAutoTrade}
+            className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-3 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
+          >
+            🤖 Auto Trade
+          </button>
+        )}
+        {signal.status === 'confirmed' && (
+          <button
+            onClick={handleStartTrailing}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-3 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
+          >
+            🔄 Start Trailing
+          </button>
+        )}
         <button
           onClick={handleCopy}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg transition-colors text-sm font-medium"
         >
-          Copy Trade Message
+          Copy Signal
         </button>
         <button
           onClick={handleCopyJSON}
-          className="w-full bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium py-1 px-4 rounded-lg transition-colors duration-200"
+          className="w-full bg-gray-600 hover:bg-gray-700 text-white py-1.5 px-3 rounded-lg transition-colors text-xs"
         >
-          Copy as JSON
+          Copy JSON
         </button>
       </div>
     </motion.div>

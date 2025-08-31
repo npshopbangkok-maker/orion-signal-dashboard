@@ -31,8 +31,29 @@ export type OrionSignal = {
   time?: string | null;
 }
 
+export interface PriceData {
+  symbol: string;
+  price: number;
+  timestamp: string;
+  change?: number;
+  change_percent?: number;
+  volume?: number;
+  high_24h?: number;
+  low_24h?: number;
+}
+
 export interface WebSocketMessage {
   type: string;
+  payload: Signal | PriceData;
+}
+
+export interface PriceUpdateMessage {
+  type: 'price_update';
+  payload: PriceData;
+}
+
+export interface SignalMessage {
+  type: 'signal';
   payload: Signal;
 }
 

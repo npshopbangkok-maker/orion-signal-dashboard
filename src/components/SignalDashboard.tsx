@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SignalCard from './SignalCard';
+import PriceTicker from './PriceTicker';
+import MarketStatus from './MarketStatus';
+import { AutoTradingControl } from './AutoTradingControl';
+import { TrailingStopControl } from './TrailingStopControl';
 import { useSignalWebSocket } from '../hooks/useSignalWebSocket';
 import { Signal, KillzoneFilter, SymbolFilter } from '../types/signal';
 import { playNotificationSound, sendTelegramNotification } from '../utils/signalUtils';
@@ -11,7 +15,7 @@ const SignalDashboard: React.FC = () => {
   const telegramWebhook = import.meta.env.VITE_TELEGRAM_WEBHOOK;
 
   // WebSocket hook
-  const { signals, connectionStatus, reconnect } = useSignalWebSocket(wsUrl);
+  const { signals, prices, connectionStatus, reconnect } = useSignalWebSocket(wsUrl);
 
   // Filter states
   const [killzoneFilter, setKillzoneFilter] = useState<KillzoneFilter>('all');
@@ -86,14 +90,29 @@ const SignalDashboard: React.FC = () => {
     }
   };
 
+  // Check if market is open (simple approximation)
+  const isMarketOpen = useMemo(() => {
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const et = new Date(utc + (-5 * 3600000)); // EST/EDT
+    const hour = et.getHours();
+    const minute = et.getMinutes();
+    const currentTime = hour * 60 + minute;
+    const marketOpen = 9 * 60 + 30; // 9:30 AM
+    const marketClose = 16 * 60; // 4:00 PM
+    return currentTime >= marketOpen && currentTime < marketClose;
+  }, []);
+
   return (
-    <div className="min-h-screen bg-dark-bg p-6">
+    <div className="min-h-screen bg-dark-bg p-3 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold text-white">ORION Signal Dashboard</h1>
-            <div className="flex items-center space-x-4">
+        <div className="mb-6 md:mb-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-6 space-y-4 md:space-y-0">
+            <h1 className="text-2xl md:text-3xl font-bold text-white">ORION Signal Dashboard</h1>
+            <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4">
+              {/* Market Status - Mobile */}
+              <MarketStatus className="md:hidden" />
               {/* Connection Status */}
               <div className="flex items-center space-x-2">
                 <div className={`w-3 h-3 rounded-full ${getConnectionStatusColor()}`}></div>
@@ -109,6 +128,21 @@ const SignalDashboard: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Price Ticker */}
+          <PriceTicker prices={prices} isMarketOpen={isMarketOpen} />
+
+          {/* Auto Trading Control */}
+          <AutoTradingControl 
+            onToggle={(enabled) => {
+              console.log(`Auto trading ${enabled ? 'enabled' : 'disabled'}`);
+            }}
+          />
+
+          {/* Trailing Stop Control */}
+          <TrailingStopControl prices={Object.fromEntries(
+            Object.entries(prices).map(([symbol, data]) => [symbol, data.price])
+          )} />
 
           {/* Filters */}
           <div className="bg-card-bg rounded-2xl p-4 space-y-4">
@@ -158,10 +192,14 @@ const SignalDashboard: React.FC = () => {
                 </label>
               </div>
 
-              {/* Stats */}
-              <div className="text-right">
-                <div className="text-sm text-gray-400">Total Signals</div>
-                <div className="text-xl font-bold text-white">{filteredSignals.length}</div>
+              {/* Stats & Market Status */}
+              <div className="flex md:flex-col items-center md:items-end justify-between">
+                <div className="text-right">
+                  <div className="text-sm text-gray-400">Total Signals</div>
+                  <div className="text-xl font-bold text-white">{filteredSignals.length}</div>
+                </div>
+                {/* Market Status - Desktop */}
+                <MarketStatus className="hidden md:block mt-2" />
               </div>
             </div>
           </div>
@@ -182,16 +220,16 @@ const SignalDashboard: React.FC = () => {
         </AnimatePresence>
 
         {/* Signal Columns */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Pending Signals */}
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             <div className="flex items-center space-x-2">
-              <h2 className="text-xl font-semibold text-pending">Pending</h2>
+              <h2 className="text-lg md:text-xl font-semibold text-pending">Pending</h2>
               <span className="bg-pending/20 text-pending px-2 py-1 rounded-lg text-sm font-medium">
                 {signalsByStatus.pending.length}
               </span>
             </div>
-            <div className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto">
+            <div className="space-y-3 max-h-[calc(100vh-400px)] md:max-h-[calc(100vh-350px)] overflow-y-auto">
               <AnimatePresence>
                 {signalsByStatus.pending.map((signal) => (
                   <SignalCard
@@ -210,14 +248,14 @@ const SignalDashboard: React.FC = () => {
           </div>
 
           {/* Confirmed Signals */}
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             <div className="flex items-center space-x-2">
-              <h2 className="text-xl font-semibold text-confirmed">Confirmed</h2>
+              <h2 className="text-lg md:text-xl font-semibold text-confirmed">Confirmed</h2>
               <span className="bg-confirmed/20 text-confirmed px-2 py-1 rounded-lg text-sm font-medium">
                 {signalsByStatus.confirmed.length}
               </span>
             </div>
-            <div className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto">
+            <div className="space-y-3 max-h-[calc(100vh-400px)] md:max-h-[calc(100vh-350px)] overflow-y-auto">
               <AnimatePresence>
                 {signalsByStatus.confirmed.map((signal) => (
                   <SignalCard
@@ -236,14 +274,14 @@ const SignalDashboard: React.FC = () => {
           </div>
 
           {/* Invalidated Signals */}
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             <div className="flex items-center space-x-2">
-              <h2 className="text-xl font-semibold text-invalidated">Invalidated</h2>
+              <h2 className="text-lg md:text-xl font-semibold text-invalidated">Invalidated</h2>
               <span className="bg-invalidated/20 text-invalidated px-2 py-1 rounded-lg text-sm font-medium">
                 {signalsByStatus.invalidated.length}
               </span>
             </div>
-            <div className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto">
+            <div className="space-y-3 max-h-[calc(100vh-400px)] md:max-h-[calc(100vh-350px)] overflow-y-auto">
               <AnimatePresence>
                 {signalsByStatus.invalidated.map((signal) => (
                   <SignalCard
