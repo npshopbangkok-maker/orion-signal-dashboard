@@ -1,33 +1,16 @@
 import { Signal } from '../types/signal';
+import LineNotifyService from '../services/lineNotify';
 
-// Play notification sound
+// Audio notification
 export const playNotificationSound = () => {
-  try {
-    // Create a simple notification sound using Web Audio API
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
-    oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
-    
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-    
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.3);
-  } catch (error) {
-    console.warn('Could not play notification sound:', error);
-    // Fallback to system beep
-    console.log('\u0007'); // Bell character
-  }
+  const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+LyvmEVAUiQ1/LLeSMFNoPU8tiPNwkZa7zs5KBNFAxTqOLwt2EYA0eO2fLLeSUFM37O8t2RTAwSXrPm66hVFwtGnt7sv2MXAUeK1/LMeSYGOIHD89yOPgkRYL3t559lGAwQr+P1oQAAS0lEQVQoU2+47+ahThoOR5zd7sJ+HwNBjdTz0oE3CRZxwOzjpVIWCUSn4/K8XhsENo3X8tGAOAgZaL3m46dQFgpDn+Hwu2IdA0iN2fLOeCQGOILJ8N2OOwsSYLfk7qBNGwxTpuLwvGAYA0iO2fLMeSUGNH3R8t2QTAwQWrTm66hVGQpGn+Hzu2IcA0iO2fLGeSYGOYHA8tuNPgsQYL3t46FNGwxTpOPwvGEYA0eP2fLJeSUFNYPG8N2OPQkRXrLp66tVGAtDn+Dxt2AZA0eK2e/NeSMGOYHO8tiNNwcZar3w46FQFQhRpOPyuGMeBn/U8tLDdywDMoDF8t+NOAoUW7Pg7qNOGwxKpeXyy2odD0N+2PLTe2IDDj/Fz6PtMgAy8/LO3sIFw'); // Simple beep sound
+  audio.play().catch(() => {
+    // Fallback for browsers that don't allow autoplay
+    console.log('🔊 Signal notification (audio blocked)');
+  });
 };
 
-// Send Telegram webhook
+// Telegram notification
 export const sendTelegramNotification = async (signal: Signal, webhookUrl?: string) => {
   if (!webhookUrl) return;
 
@@ -74,8 +57,25 @@ Direction: *${signal.direction.toUpperCase()}*`;
         parse_mode: 'Markdown'
       })
     });
+
+    console.log('✅ Telegram notification sent');
   } catch (error) {
-    console.error('Failed to send Telegram notification:', error);
+    console.error('❌ Telegram notification failed:', error);
+  }
+};
+
+// LINE Notify notification
+export const sendLineNotification = async (signal: Signal, lineToken: string) => {
+  if (!lineToken) {
+    console.log('⚠️ LINE token not configured');
+    return;
+  }
+
+  try {
+    const lineService = new LineNotifyService(lineToken);
+    await lineService.sendSignalNotification(signal);
+  } catch (error) {
+    console.error('❌ LINE notification failed:', error);
   }
 };
 

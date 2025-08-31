@@ -7,12 +7,13 @@ import { AutoTradingControl } from './AutoTradingControl';
 import { TrailingStopControl } from './TrailingStopControl';
 import { useSignalWebSocket } from '../hooks/useSignalWebSocket';
 import { Signal, KillzoneFilter, SymbolFilter } from '../types/signal';
-import { playNotificationSound, sendTelegramNotification } from '../utils/signalUtils';
+import { playNotificationSound, sendTelegramNotification, sendLineNotification } from '../utils/signalUtils';
 
 const SignalDashboard: React.FC = () => {
   // Environment variables
   const wsUrl = import.meta.env.VITE_SIGNAL_WS_URL;
   const telegramWebhook = import.meta.env.VITE_TELEGRAM_WEBHOOK;
+  const lineToken = import.meta.env.VITE_LINE_TOKEN;
 
   // WebSocket hook
   const { signals, prices, connectionStatus, error, reconnect } = useSignalWebSocket(wsUrl);
@@ -40,6 +41,11 @@ const SignalDashboard: React.FC = () => {
       // Send Telegram notification
       if (telegramWebhook) {
         sendTelegramNotification(signal, telegramWebhook);
+      }
+
+      // Send LINE notification
+      if (lineToken) {
+        sendLineNotification(signal, lineToken);
       }
     });
 
