@@ -32,11 +32,11 @@ export default function TestLineButton() {
         status: 'confirmed'
       };
       
-      console.log('🧪 Sending LINE notification via API...');
+      console.log('🧪 Sending LINE notification via Vercel API...');
       console.log('📊 Test signal:', testSignal);
       
-      // Use our API endpoint instead of direct LINE API call
-      const response = await fetch('/api/send-line-notification', {
+      // Use simpler API endpoint
+      const response = await fetch('/api/test-line', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
