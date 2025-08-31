@@ -1,5 +1,5 @@
 import { Signal } from '../types/signal';
-import LineNotifyService from '../services/lineNotify';
+import LineMessagingService from '../services/lineNotify';
 
 // Audio notification
 export const playNotificationSound = () => {
@@ -64,18 +64,18 @@ Direction: *${signal.direction.toUpperCase()}*`;
   }
 };
 
-// LINE Notify notification
-export const sendLineNotification = async (signal: Signal, lineToken: string) => {
-  if (!lineToken) {
-    console.log('⚠️ LINE token not configured');
+// LINE Messaging API notification
+export const sendLineNotification = async (signal: Signal, channelAccessToken: string, userId?: string) => {
+  if (!channelAccessToken) {
+    console.log('⚠️ LINE channel access token not configured');
     return;
   }
 
   try {
-    const lineService = new LineNotifyService(lineToken);
-    await lineService.sendSignalNotification(signal);
+    const lineService = new LineMessagingService(channelAccessToken);
+    await lineService.sendSignalNotification(signal, userId);
   } catch (error) {
-    console.error('❌ LINE notification failed:', error);
+    console.error('❌ LINE Messaging API notification failed:', error);
   }
 };
 

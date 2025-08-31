@@ -13,7 +13,8 @@ const SignalDashboard: React.FC = () => {
   // Environment variables
   const wsUrl = import.meta.env.VITE_SIGNAL_WS_URL;
   const telegramWebhook = import.meta.env.VITE_TELEGRAM_WEBHOOK;
-  const lineToken = import.meta.env.VITE_LINE_TOKEN;
+  const lineChannelAccessToken = import.meta.env.VITE_LINE_CHANNEL_ACCESS_TOKEN;
+  const lineUserId = import.meta.env.VITE_LINE_USER_ID;
 
   // WebSocket hook
   const { signals, prices, connectionStatus, error, reconnect } = useSignalWebSocket(wsUrl);
@@ -44,8 +45,8 @@ const SignalDashboard: React.FC = () => {
       }
 
       // Send LINE notification
-      if (lineToken) {
-        sendLineNotification(signal, lineToken);
+      if (lineChannelAccessToken) {
+        sendLineNotification(signal, lineChannelAccessToken, lineUserId);
       }
     });
 
