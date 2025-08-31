@@ -15,7 +15,7 @@ const SignalDashboard: React.FC = () => {
   const telegramWebhook = import.meta.env.VITE_TELEGRAM_WEBHOOK;
 
   // WebSocket hook
-  const { signals, prices, connectionStatus, reconnect } = useSignalWebSocket(wsUrl);
+  const { signals, prices, connectionStatus, error, reconnect } = useSignalWebSocket(wsUrl);
 
   // Filter states
   const [killzoneFilter, setKillzoneFilter] = useState<KillzoneFilter>('all');
@@ -124,6 +124,11 @@ const SignalDashboard: React.FC = () => {
                   >
                     Reconnect
                   </button>
+                )}
+                {error && (
+                  <span className="text-xs text-yellow-400 ml-2">
+                    {error}
+                  </span>
                 )}
               </div>
             </div>

@@ -65,10 +65,13 @@ export const useSignalWebSocket = (wsUrl?: string) => {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [prices, setPrices] = useState<Record<string, PriceData>>({});
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
+  const [error, setError] = useState<string | null>(null);
   const ws = useRef<WebSocket | null>(null);
   const demoInterval = useRef<number | null>(null);
   const priceInterval = useRef<number | null>(null);
   const expireTimeouts = useRef<Map<string, number>>(new Map());
+  const reconnectAttempts = useRef<number>(0);
+  const maxReconnectAttempts = 10;
 
   // Demo mode functions
   const generateDemoPrice = (symbol: string): PriceData => {
@@ -151,25 +154,45 @@ export const useSignalWebSocket = (wsUrl?: string) => {
   // WebSocket functions
   const connectWebSocket = () => {
     if (!wsUrl) {
+      console.log('No WebSocket URL provided, using demo mode');
       startDemoMode();
       return;
     }
 
     try {
       setConnectionStatus('connecting');
-      ws.current = new WebSocket(wsUrl);
+      setError(null);
+      
+      // Use OrionAI WebSocket URL
+      const orionWsUrl = wsUrl || 'wss://api.orion-ai.com/ws/signals';
+      console.log('Connecting to OrionAI WebSocket:', orionWsUrl);
+      
+      ws.current = new WebSocket(orionWsUrl);
 
       ws.current.onopen = () => {
-        console.log('WebSocket connected');
+        console.log('✅ Connected to OrionAI WebSocket');
         setConnectionStatus('connected');
+        setError(null);
+        reconnectAttempts.current = 0;
+        
+        // Send authentication or subscription message
+        const authMessage = {
+          type: 'subscribe',
+          channels: ['signals', 'prices'],
+          timestamp: new Date().toISOString()
+        };
+        ws.current?.send(JSON.stringify(authMessage));
       };
 
       ws.current.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
+          console.log('📡 Received message:', message.type);
           
           if (message.type === 'signal' && 'id' in message.payload) {
             const signal = message.payload as Signal;
+            console.log('🎯 New signal received:', signal.symbol, signal.direction);
+            
             setSignals(prev => {
               // Check if signal already exists (update) or is new
               const existingIndex = prev.findIndex(s => s.id === signal.id);
@@ -216,13 +239,44 @@ export const useSignalWebSocket = (wsUrl?: string) => {
       };
 
       ws.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        console.error('❌ WebSocket error:', error);
+        setError('WebSocket connection error');
         setConnectionStatus('disconnected');
+        
+        // Auto-reconnect with exponential backoff
+        if (reconnectAttempts.current < maxReconnectAttempts) {
+          const delay = Math.pow(2, reconnectAttempts.current) * 1000; // 1s, 2s, 4s, 8s...
+          console.log(`🔄 Reconnecting in ${delay/1000}s... (${reconnectAttempts.current + 1}/${maxReconnectAttempts})`);
+          
+          setTimeout(() => {
+            reconnectAttempts.current++;
+            connectWebSocket();
+          }, delay);
+        } else {
+          console.log('🚫 Max reconnection attempts reached, falling back to demo mode');
+          setError('Failed to connect to OrionAI, using demo mode');
+          startDemoMode();
+        }
       };
 
-      ws.current.onclose = () => {
-        console.log('WebSocket disconnected');
+      ws.current.onclose = (event) => {
+        console.log('🔌 WebSocket disconnected:', event.code, event.reason);
         setConnectionStatus('disconnected');
+        
+        // Only attempt reconnection if this wasn't a manual disconnect
+        if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
+          const delay = Math.pow(2, reconnectAttempts.current) * 1000;
+          console.log(`🔄 Auto-reconnecting in ${delay/1000}s...`);
+          
+          setTimeout(() => {
+            reconnectAttempts.current++;
+            connectWebSocket();
+          }, delay);
+        } else if (event.code !== 1000) {
+          console.log('🚫 Connection lost, falling back to demo mode');
+          setError('Connection to OrionAI lost, using demo mode');
+          startDemoMode();
+        }
       };
     } catch (error) {
       console.error('Error connecting to WebSocket:', error);
@@ -261,6 +315,7 @@ export const useSignalWebSocket = (wsUrl?: string) => {
     signals,
     prices,
     connectionStatus,
+    error,
     reconnect: connectWebSocket,
     disconnect
   };
