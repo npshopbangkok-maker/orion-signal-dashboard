@@ -1,6 +1,52 @@
 # ORION Signal Dashboard - Backend Integration Requirements
 
-## 📡 WebSocket Server Requirements
+## � Live Signal Reception (NEW!)
+
+### �📡 **HTTP POST Endpoint for Real Signals**
+```
+https://orion-signal-dashboard.vercel.app/api/signals
+```
+
+#### **Request Format:**
+```json
+{
+  "signal_type": "trade" | "analysis",
+  "id": "unique_signal_id",
+  "symbol": "EURUSD",
+  "direction": "long" | "short",
+  "entry_time": "2024-01-01T12:00:00Z",
+  "price": 1.0950,
+  "entry_price": 1.0950,
+  "stop_loss": 1.0900,
+  "take_profits": [1.1000, 1.1050, 1.1100],
+  "reason": "London breakout strategy",
+  "confidence": 85,
+  "rr_target": 3.0,
+  "killzone": "London Open",
+  "status": "confirmed",
+  "dry_run": true
+}
+```
+
+#### **Response:**
+```json
+{
+  "success": true,
+  "signal_id": "unique_signal_id",
+  "dry_run": true,
+  "line_sent": false
+}
+```
+
+#### **Usage:**
+- `signal_type: "trade"` → Real-time trade signals (handle_trade)
+- `signal_type: "analysis"` → Analysis signals (run_orion_analysis)  
+- `dry_run: true` → Testing mode (no LINE notifications)
+- `dry_run: false` → Live mode (sends LINE notifications)
+
+---
+
+## 📡 WebSocket Server Requirements (Legacy)
 
 ### 🎯 **WebSocket Endpoint**
 ```
