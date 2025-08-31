@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { sendSignalNotification } from '../services/lineNotify';
-import type { Signal } from '../types/signal';
 
 export default function TestLineButton() {
   const [isLoading, setIsLoading] = useState(false);
@@ -17,10 +15,10 @@ export default function TestLineButton() {
     console.log('──────────────────────────────────');
     
     try {
-      const testSignal: Signal = {
+      const testSignal = {
         id: `test-${Date.now()}`,
         symbol: 'EURUSD',
-        direction: 'long' as const,
+        direction: 'long',
         entry_time: new Date().toISOString(),
         price: 1.0950,
         entry_price: 1.0950,
@@ -31,16 +29,30 @@ export default function TestLineButton() {
         confidence: 85,
         rr_target: 3,
         killzone: 'London Open',
-        status: 'confirmed' as const
+        status: 'confirmed'
       };
       
-      console.log('🧪 Sending LINE notification...');
+      console.log('🧪 Sending LINE notification via API...');
       console.log('📊 Test signal:', testSignal);
       
-      await sendSignalNotification(testSignal);
-      
-      console.log('✅ LINE notification sent successfully!');
-      alert('✅ ส่งแจ้งเตือนไปที่ LINE แล้ว!');
+      // Use our API endpoint instead of direct LINE API call
+      const response = await fetch('/api/send-line-notification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ signal: testSignal }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ LINE notification sent successfully!', result);
+        alert('✅ ส่งแจ้งเตือนไปที่ LINE แล้ว!');
+      } else {
+        const error = await response.json();
+        console.error('❌ API Error:', error);
+        alert('❌ ส่งแจ้งเตือนไม่สำเร็จ: ' + error.message);
+      }
     } catch (error) {
       console.error('💥 Error sending test notification:', error);
       alert('❌ ส่งแจ้งเตือนไม่สำเร็จ: ' + (error as Error).message);
