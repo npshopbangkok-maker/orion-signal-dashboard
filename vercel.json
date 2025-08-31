@@ -4,7 +4,10 @@
       "runtime": "nodejs18.x"
     }
   },
-  "env": {
-    "VITE_LINE_CHANNEL_ACCESS_TOKEN": "@line-channel-access-token"
-  }
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    }
+  ]
 }
