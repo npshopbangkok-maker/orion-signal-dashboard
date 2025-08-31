@@ -1,8 +1,5 @@
-// Simple API endpoint for Vercel
-import { execSync } from 'child_process';
-import path from 'path';
-
-export default async function handler(req, res) {
+// API endpoint for sending LINE notifications (Vercel serverless)
+module.exports = async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');

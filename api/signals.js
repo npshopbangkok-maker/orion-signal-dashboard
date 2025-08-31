@@ -1,5 +1,5 @@
-// API endpoint to receive signals from Orion backend
-export default async function handler(req, res) {
+// API endpoint to receive signals from Orion backend (Vercel serverless)
+module.exports = async function handler(req, res) {
   // Enable CORS for Orion backend
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
