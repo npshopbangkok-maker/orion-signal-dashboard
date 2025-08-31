@@ -5,6 +5,7 @@ import PriceTicker from './PriceTicker';
 import MarketStatus from './MarketStatus';
 import { AutoTradingControl } from './AutoTradingControl';
 import { TrailingStopControl } from './TrailingStopControl';
+import TestLineButton from './TestLineButton';
 import { useSignalWebSocket } from '../hooks/useSignalWebSocket';
 import { Signal, KillzoneFilter, SymbolFilter } from '../types/signal';
 import { playNotificationSound, sendTelegramNotification, sendLineNotification } from '../utils/signalUtils';
@@ -138,6 +139,11 @@ const SignalDashboard: React.FC = () => {
                   </span>
                 )}
               </div>
+              {/* Test LINE Button */}
+              <TestLineButton 
+                channelAccessToken={lineChannelAccessToken}
+                userId={lineUserId}
+              />
             </div>
           </div>
 
