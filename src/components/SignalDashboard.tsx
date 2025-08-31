@@ -140,10 +140,7 @@ const SignalDashboard: React.FC = () => {
                 )}
               </div>
               {/* Test LINE Button */}
-              <TestLineButton 
-                channelAccessToken={lineChannelAccessToken}
-                userId={lineUserId}
-              />
+              <TestLineButton />
             </div>
           </div>
 

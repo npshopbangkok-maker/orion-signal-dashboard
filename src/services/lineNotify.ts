@@ -408,4 +408,16 @@ class LineMessagingService {
   }
 }
 
+// Wrapper function for easy use
+export const sendSignalNotification = async (signal: any, userId?: string): Promise<boolean> => {
+  const token = import.meta.env.VITE_LINE_CHANNEL_ACCESS_TOKEN;
+  
+  if (!token) {
+    throw new Error('LINE Channel Access Token not found in environment variables');
+  }
+  
+  const lineService = new LineMessagingService(token);
+  return await lineService.sendSignalNotification(signal, userId);
+};
+
 export default LineMessagingService;

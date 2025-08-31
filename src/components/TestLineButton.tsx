@@ -1,59 +1,62 @@
-import React from 'react';
-import { sendLineNotification } from '../utils/signalUtils';
+import { useState } from 'react';
+import { sendSignalNotification } from '../services/lineNotify';
+import type { Signal } from '../types/signal';
 
-interface TestLineButtonProps {
-  channelAccessToken?: string;
-  userId?: string;
-}
+export default function TestLineButton() {
+  const [isLoading, setIsLoading] = useState(false);
 
-const TestLineButton: React.FC<TestLineButtonProps> = ({ 
-  channelAccessToken, 
-  userId 
-}) => {
-  const sendTestSignal = async () => {
-    if (!channelAccessToken) {
-      alert('❌ กรุณาตั้งค่า LINE Channel Access Token ใน .env ก่อน');
-      return;
-    }
-
-    // สร้าง demo signal
-    const testSignal = {
-      id: `test_${Date.now()}`,
-      status: 'confirmed' as const,
-      direction: 'long' as const,
-      symbol: 'EURUSD',
-      entry_time: new Date().toISOString(),
-      entry_price: 1.0850,
-      stop_loss: 1.0820,
-      take_profits: [1.0880, 1.0920, 1.0960],
-      tp_modes: ['TP1 30%', 'TP2 40%', 'Runner 30%'],
-      reason: '🧪 ทดสอบการส่งสัญญาณจาก ORION Dashboard',
-      confidence: 0.85,
-      rr_target: 2.5,
-      killzone: 'london' as const,
-      price: 1.0850 // legacy field
-    };
-
+  const handleTest = async () => {
+    setIsLoading(true);
+    
+    // Debug environment variables
+    console.log('🔍 Environment Variables Check:');
+    console.log('──────────────────────────────────');
+    console.log('VITE_LINE_CHANNEL_ACCESS_TOKEN:', import.meta.env.VITE_LINE_CHANNEL_ACCESS_TOKEN ? '✅ Set' : '❌ Not Set');
+    console.log('VITE_LINE_USER_ID:', import.meta.env.VITE_LINE_USER_ID || '(empty - using broadcast)');
+    console.log('Token preview:', import.meta.env.VITE_LINE_CHANNEL_ACCESS_TOKEN?.substring(0, 20) + '...');
+    console.log('──────────────────────────────────');
+    
     try {
-      console.log('📤 ส่งสัญญาณทดสอบไป LINE...');
-      await sendLineNotification(testSignal, channelAccessToken, userId);
+      const testSignal: Signal = {
+        id: `test-${Date.now()}`,
+        symbol: 'EURUSD',
+        direction: 'long' as const,
+        entry_time: new Date().toISOString(),
+        price: 1.0950,
+        entry_price: 1.0950,
+        stop_loss: 1.0900,
+        take_profits: [1.1000, 1.1050, 1.1100],
+        tp_modes: ['50%', '25%', '25%'],
+        reason: 'Test signal from dashboard',
+        confidence: 85,
+        rr_target: 3,
+        killzone: 'London Open',
+        status: 'confirmed' as const
+      };
       
-      alert('✅ ส่งสัญญาณทดสอบสำเร็จ! เช็ค LINE app ดูครับ 📱');
+      console.log('🧪 Sending LINE notification...');
+      console.log('📊 Test signal:', testSignal);
+      
+      await sendSignalNotification(testSignal);
+      
+      console.log('✅ LINE notification sent successfully!');
+      alert('✅ ส่งแจ้งเตือนไปที่ LINE แล้ว!');
     } catch (error) {
-      console.error('❌ เกิดข้อผิดพลาด:', error);
-      alert('❌ ส่งสัญญาณไม่สำเร็จ ดู console สำหรับรายละเอียด');
+      console.error('💥 Error sending test notification:', error);
+      alert('❌ ส่งแจ้งเตือนไม่สำเร็จ: ' + (error as Error).message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <button
-      onClick={sendTestSignal}
-      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2"
+      onClick={handleTest}
+      disabled={isLoading}
+      className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2"
     >
       <span>📱</span>
-      <span>ทดสอบ LINE Notification</span>
+      <span>{isLoading ? 'กำลังส่ง...' : 'ทดสอบ LINE Notification'}</span>
     </button>
   );
-};
-
-export default TestLineButton;
+}
