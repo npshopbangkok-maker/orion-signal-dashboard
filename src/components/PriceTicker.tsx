@@ -117,7 +117,7 @@ const PriceTicker: React.FC<PriceTickerProps> = ({ prices, isMarketOpen }) => {
 
       {/* Last Update */}
       <div className="text-center mt-4 text-xs text-gray-400">
-        Last update: {new Date().toLocaleTimeString()}
+        Last update: {new Date().toLocaleTimeString()} • {Object.keys(prices).length > 0 ? 'Live Feed' : 'Demo Mode'}
       </div>
     </div>
   );
