@@ -6,7 +6,7 @@ import { WebSocketServer } from 'ws';
 
 const app = express();
 const server = createServer(app);
-const PORT = 3000;
+const PORT = 3333;
 
 // Middleware
 app.use(cors());
@@ -68,6 +68,28 @@ app.post('/api/signals', (req, res) => {
     signal_id: signal.id,
     signal_type: signal.signal_type,
     dry_run: signal.dry_run || false,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Prices endpoint
+app.post('/api/prices', (req, res) => {
+  const priceData = req.body;
+  
+  console.log('\n📊 RECEIVED PRICE UPDATE:');
+  console.log('═══════════════════════════════════');
+  console.log('💱 Symbol:', priceData.symbol);
+  console.log('💰 Price:', priceData.price);
+  console.log('📈 Change:', priceData.change || 0);
+  console.log('📊 Volume:', priceData.volume || 0);
+  console.log('⏰ Timestamp:', priceData.timestamp);
+  console.log('═══════════════════════════════════\n');
+  
+  // Send success response
+  res.status(200).json({
+    success: true,
+    message: 'Price update received',
+    symbol: priceData.symbol,
     timestamp: new Date().toISOString()
   });
 });
