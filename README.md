@@ -1,6 +1,48 @@
 # ORION Signal Dashboard
 
-A premium React + TypeScript trading signal dashboard with real-time WebSocket feeds, built with Vite, TailwindCSS, and Framer Motion.
+A premium React + TypeScript trading signal dashboard with real-time WebSocket feeds, built with Vite, TailwindCSS, and Framer Motion. Now includes a **complete FastAPI backend** for serving the frontend and providing real-time MNQ.v.0 signals using the ORIONAI_MAX algorithm.
+
+## 🆕 FastAPI Backend (NEW!)
+
+**Complete single-server solution** that serves the React frontend and provides real-time trading signals:
+
+### Quick Start
+```bash
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Start the complete dashboard (frontend + backend)
+./start_dashboard.sh
+# OR
+python main.py
+```
+
+Visit: **http://localhost:8000** for the complete dashboard!
+
+### Features
+- ✅ **Serves React Frontend**: Static file serving from `/dist` folder
+- ✅ **Databento Integration**: Real MNQ.v.0 data from GLBX.MDP3 dataset  
+- ✅ **ORIONAI_MAX Algorithm**: EMA cross + ATR strategy with Entry/SL/TP
+- ✅ **WebSocket Signals**: Real-time trading signals and price updates
+- ✅ **Demo Mode**: Automatic fallback with realistic data simulation
+- ✅ **RESTful API**: Health checks, historical data, algorithm analysis
+
+### Architecture
+```
+FastAPI Backend (Port 8000)
+├── Serves React frontend (/)
+├── WebSocket endpoint (/ws/signals)  
+├── REST API (/api/*)
+├── Databento client (MNQ.v.0 data)
+├── ORIONAI_MAX algorithm (EMA + ATR)
+└── Real-time signal generation
+```
+
+📖 **See [README_FASTAPI.md](README_FASTAPI.md) for complete backend documentation**
+
+---
+
+## Original React Frontend Features
 
 ## Features
 
