@@ -119,13 +119,13 @@ export default function TradeHistory() {
     }
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'text-blue-400';
-      case 'closed': return 'text-gray-400';
-      default: return 'text-gray-400';
-    }
-  };
+  // const getStatusColor = (status: string) => {
+  //   switch (status) {
+  //     case 'active': return 'text-blue-400';
+  //     case 'closed': return 'text-gray-400';
+  //     default: return 'text-gray-400';
+  //   }
+  // };
 
   const getPnlColor = (pnl?: number) => {
     if (!pnl) return 'text-gray-400';
